@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphiti API Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+        }
+        #response {
+            white-space: pre-wrap;
+            background-color: #282c34;
+            color: #abb2bf;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Explorateur d'API Graphiti</h1>
+
+        <div class="card p-4">
+            <div class="mb-3">
+                <label for="apiUrl" class="form-label">URL de l'API Graphiti</label>
+                <input type="text" class="form-control" id="apiUrl" placeholder="http://votre-vps-ip:port">
+            </div>
+            <div class="mb-3">
+                <label for="apiKey" class="form-label">Clé d'API (X-API-Key)</label>
+                <input type="password" class="form-control" id="apiKey" placeholder="Votre clé d'API">
+            </div>
+            <div class="mb-3">
+                <label for="query" class="form-label">Question en langage naturel</label>
+                <textarea class="form-control" id="query" rows="4" placeholder="Ex: Quels sont les derniers épisodes ?"></textarea>
+            </div>
+            <button id="searchBtn" class="btn btn-primary">Rechercher</button>
+        </div>
+
+        <h2 class="mt-5">Réponse de l'API</h2>
+        <div id="spinner" class="d-none text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <pre id="response" class="mt-3"></pre>
+    </div>
+
+    <script>
+        const searchBtn = document.getElementById('searchBtn');
+        const apiUrlInput = document.getElementById('apiUrl');
+        const apiKeyInput = document.getElementById('apiKey');
+        const queryInput = document.getElementById('query');
+        const responseEl = document.getElementById('response');
+        const spinner = document.getElementById('spinner');
+
+        searchBtn.addEventListener('click', async () => {
+            const apiUrl = apiUrlInput.value.trim();
+            const apiKey = apiKeyInput.value.trim();
+            const query = queryInput.value.trim();
+
+            if (!apiUrl || !apiKey || !query) {
+                responseEl.textContent = 'Veuillez remplir tous les champs.';
+                responseEl.style.color = 'red';
+                return;
+            }
+
+            // Assurez-vous que l'URL se termine par /search
+            const searchUrl = apiUrl.endsWith('/') ? `${apiUrl}search` : `${apiUrl}/search`;
+
+            // Affiche le spinner et efface la réponse précédente
+            spinner.classList.remove('d-none');
+            responseEl.textContent = '';
+            responseEl.style.color = '#abb2bf'; // Reset color
+
+            try {
+                const response = await fetch(searchUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey // L'en-tête pour la clé d'API, à ajuster si nécessaire
+                    },
+                    // Le corps de la requête.
+                    // Nous supposons ici que l'API attend un objet JSON avec une clé "query".
+                    // Si le schéma de votre API (SearchQuery) est différent, vous devrez l'ajuster ici.
+                    body: JSON.stringify({ query: query })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(`Erreur ${response.status}: ${JSON.stringify(data, null, 2)}`);
+                }
+
+                responseEl.textContent = JSON.stringify(data, null, 2);
+
+            } catch (error) {
+                responseEl.textContent = `Une erreur est survenue :\n${error.message}`;
+                responseEl.style.color = 'red';
+            } finally {
+                // Cache le spinner
+                spinner.classList.add('d-none');
+            }
+        });
+    </script>
+</body>
+</html>
